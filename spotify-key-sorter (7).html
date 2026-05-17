@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spotify Key Sorter</title>
+<style>
+  :root{--green:#1DB954;--black:#121212;--surface:#1e1e1e;--surface2:#282828;--surface3:#333333;--text:#ffffff;--text-muted:#b3b3b3;--text-dim:#6a6a6a;--radius:8px;--radius-lg:12px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--black);color:var(--text);font-family:ui-sans-serif,system-ui,sans-serif;min-height:100vh;padding:2rem 1rem;}
+  .container{max-width:780px;margin:0 auto;}
+  header{text-align:center;margin-bottom:2.5rem;}
+  header .logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:0.75rem;}
+  header h1{font-size:2rem;font-weight:700;letter-spacing:-0.5px;}
+  header p{color:var(--text-muted);font-size:0.95rem;margin-top:0.4rem;}
+  .card{background:var(--surface);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.25rem;}
+  .card h2{font-size:1rem;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:8px;}
+  .step-badge{background:var(--green);color:#000;font-size:0.7rem;font-weight:700;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .step-badge.done{background:var(--surface3);color:var(--text-muted);}
+  label{display:block;font-size:0.82rem;color:var(--text-muted);margin-bottom:0.4rem;font-weight:500;}
+  input[type="text"],input[type="password"]{width:100%;background:var(--surface2);border:1px solid var(--surface3);border-radius:var(--radius);color:var(--text);font-size:0.9rem;padding:0.65rem 0.9rem;outline:none;transition:border-color 0.15s;margin-bottom:0.9rem;font-family:inherit;}
+  input:focus{border-color:var(--green);}
+  .hint{font-size:0.78rem;color:var(--text-dim);margin-top:-0.6rem;margin-bottom:0.9rem;line-height:1.5;}
+  .hint a,.callout a{color:var(--green);text-decoration:none;}
+  button{background:var(--green);color:#000;font-size:0.9rem;font-weight:700;border:none;border-radius:500px;padding:0.7rem 1.6rem;cursor:pointer;transition:background 0.15s,transform 0.1s;font-family:inherit;}
+  button:hover{background:#1ed760;}button:active{transform:scale(0.97);}
+  button:disabled{background:var(--surface3);color:var(--text-dim);cursor:not-allowed;transform:none;}
+  .btn-sec{background:transparent;color:var(--text);border:1px solid var(--surface3);margin-left:0.5rem;}
+  .btn-sec:hover{background:var(--surface3);}
+  .callout{background:rgba(29,185,84,0.1);border:1px solid rgba(29,185,84,0.3);border-radius:var(--radius);padding:0.9rem 1rem;font-size:0.85rem;color:#a8f0c0;line-height:1.9;}
+  .callout strong{color:var(--green);}
+  .warning{background:rgba(255,180,0,0.1);border:1px solid rgba(255,180,0,0.3);border-radius:var(--radius);padding:0.75rem 1rem;font-size:0.82rem;color:#ffd166;line-height:1.5;margin-top:0.75rem;}
+  .status-bar{display:none;background:var(--surface2);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1rem;}
+  .status-row{display:flex;align-items:center;gap:10px;font-size:0.88rem;}
+  .spinner{width:18px;height:18px;border:2px solid var(--surface3);border-top-color:var(--green);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .progress-wrap{margin-top:0.7rem;}
+  .progress-label{display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted);margin-bottom:0.3rem;}
+  .progress-track{background:var(--surface3);border-radius:999px;height:6px;overflow:hidden;}
+  .progress-fill{background:var(--green);height:100%;border-radius:999px;transition:width 0.3s;width:0%;}
+  .log-box{background:var(--surface2);border-radius:var(--radius);padding:0.75rem 1rem;font-size:0.78rem;color:var(--text-muted);max-height:220px;overflow-y:auto;line-height:1.7;font-family:monospace;margin-top:0.75rem;display:none;}
+  .log-entry.ok{color:#1ed760;}.log-entry.err{color:#f15e6c;}
+  .key-grid{display:none;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:0.75rem;}
+  .key-pill{background:var(--surface2);border-radius:var(--radius);padding:0.55rem 0.75rem;display:flex;justify-content:space-between;align-items:center;font-size:0.82rem;}
+  .key-pill .kname{font-weight:600;}.key-pill .kcount{color:var(--green);font-size:0.75rem;font-weight:700;}
+  .key-pill.created{border:1px solid var(--green);}
+  .summary-row{display:none;gap:1rem;margin-top:1rem;}
+  .summary-card{flex:1;background:var(--surface2);border-radius:var(--radius-lg);padding:1.25rem;text-align:center;}
+  .summary-card .big{font-size:2.5rem;font-weight:700;color:var(--green);line-height:1;}
+  .summary-card .lbl{color:var(--text-muted);font-size:0.85rem;margin-top:0.3rem;}
+  .collapsed{display:none!important;}
+  code{background:var(--surface3);padding:1px 5px;border-radius:3px;font-size:0.82rem;color:#fff;}
+  .input-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+  @media(max-width:520px){.input-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">
+      <svg width="36" height="36" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1DB954"/><path d="M17.5 10.5c-3-1.8-8-2-10.8-1.1-.5.1-.9-.1-1-.6-.1-.5.1-.9.6-1C9.4 6.8 15 7 18.5 9c.4.3.6.8.3 1.2-.3.5-.9.6-1.3.3zm-.1 2.8c-.3.4-.8.5-1.2.3-2.5-1.5-6.3-2-9.2-1.1-.4.1-.9-.1-1-.5-.1-.4.1-.9.5-1 3.3-1 7.5-.5 10.3 1.3.4.2.5.7.3 1zm-1.4 2.7c-.3.3-.7.4-1 .2-2.2-1.3-5-1.6-8.2-.9-.3.1-.7-.1-.8-.5-.1-.3.1-.7.5-.8 3.5-.8 6.7-.4 9.2 1 .3.2.4.6.3 1z" fill="#121212"/></svg>
+      <h1>Spotify Key Sorter</h1>
+    </div>
+    <p>Reads your playlist → detects musical key + mode → creates up to 24 sorted playlists</p>
+  </header>
+
+  <!-- STEP 1 -->
+  <div class="card">
+    <h2><span class="step-badge" id="badge1">1</span> Enter Your Spotify Credentials</h2>
+    <div class="callout">
+      <strong>One-time setup:</strong><br>
+      1. Go to <a href="https://developer.spotify.com/dashboard" target="_blank">developer.spotify.com/dashboard</a> → your app → <strong>Settings</strong><br>
+      2. Add this redirect URI and save:<br>
+      &nbsp;&nbsp;<code>https://baileyraetz1.github.io/spotify-sorter/callback.html</code><br>
+      3. Copy your <strong>Client ID</strong> and <strong>Client Secret</strong> below
+    </div>
+    <div style="margin-top:1.25rem;">
+      <div class="input-row">
+        <div>
+          <label>Client ID</label>
+          <input type="text" id="clientId" value="44b6d0dabc8e4c7aaa9e64ef116e148d" autocomplete="off" spellcheck="false">
+        </div>
+        <div>
+          <label>Client Secret</label>
+          <input type="password" id="clientSecret" placeholder="From your Spotify dashboard" autocomplete="off">
+        </div>
+      </div>
+      <label>Source Playlist URL or ID</label>
+      <input type="text" id="playlistUrl" value="https://open.spotify.com/playlist/3cZk9eYhK5fn8twwsm0RRd" autocomplete="off">
+      <label>New Playlist Name Prefix <span style="color:var(--text-dim);font-weight:400;">(optional)</span></label>
+      <input type="text" id="prefix" value="BAILEY RAETZ SAMPLES" autocomplete="off">
+      <p class="hint">Playlists will be named like "BAILEY RAETZ SAMPLES – C Major".</p>
+      <button onclick="startAuth()" style="width:100%;margin-top:0.25rem;">Authenticate with Spotify →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="card collapsed" id="step2card">
+    <h2><span class="step-badge" id="badge2">2</span> Complete Authentication</h2>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">A Spotify login window opened. After you click Agree, paste the full redirect URL below.</p>
+    <label>Redirect URL (contains <code>?code=</code>)</label>
+    <input type="text" id="callbackUrl" placeholder="https://baileyraetz1.github.io/spotify-sorter/callback.html?code=AQD..." autocomplete="off" spellcheck="false">
+    <p class="hint">After clicking Agree on Spotify, copy the full URL from the address bar and paste it here. Do this within 60 seconds!</p>
+    <button onclick="exchangeCode()">Exchange Code for Token →</button>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="card collapsed" id="step3card">
+    <h2><span class="step-badge" id="badge3">3</span> Sort & Create Playlists</h2>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.75rem;">Authenticated as <strong id="userName" style="color:var(--green);"></strong>. Ready to go!</p>
+    <div class="warning">⚠ This will create up to 24 new playlists in your Spotify. Your source playlist will NOT be modified. Processing 5,000+ songs takes 5–15 minutes.</div>
+    <div style="margin-top:1rem;display:flex;gap:0.75rem;flex-wrap:wrap;">
+      <button onclick="startSorting()" id="startBtn">Start Sorting →</button>
+      <button class="btn-sec" onclick="location.reload()">Reset</button>
+    </div>
+    <div class="status-bar" id="statusBar">
+      <div class="status-row"><div class="spinner" id="spinner"></div><span id="statusMsg">Starting...</span></div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span id="progressLabel">Fetching tracks...</span><span id="progressPct">0%</span></div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+    </div>
+    <div class="log-box" id="logBox"></div>
+    <div class="key-grid" id="keyGrid"></div>
+    <div class="summary-row" id="summaryRow">
+      <div class="summary-card"><div class="big" id="sumTracksN">–</div><div class="lbl">songs sorted</div></div>
+      <div class="summary-card"><div class="big" id="sumPlaylistsN">–</div><div class="lbl">playlists created</div></div>
+      <div class="summary-card"><div class="big" id="sumSkippedN">–</div><div class="lbl">tracks skipped</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const REDIRECT_URI = 'https://baileyraetz1.github.io/spotify-sorter/callback.html';
+const VERCEL_TOKEN_URL = 'https://spotify-key-sorter.vercel.app/api/token';
+const KEY_NAMES=['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+const MODE_NAMES=['Minor','Major'];
+let accessToken=null, userId=null;
+
+function getPlaylistId(input){
+  input=(input||'').trim();
+  const m=input.match(/playlist\/([A-Za-z0-9]+)/);
+  if(m)return m[1];
+  if(/^[A-Za-z0-9]+$/.test(input))return input;
+  return null;
+}
+
+function startAuth(){
+  const clientId=document.getElementById('clientId').value.trim();
+  const clientSecret=document.getElementById('clientSecret').value.trim();
+  if(!clientId||!clientSecret){alert('Please enter both Client ID and Client Secret.');return;}
+  sessionStorage.setItem('client_id', clientId);
+  sessionStorage.setItem('client_secret', clientSecret);
+  const scopes='playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private';
+  const params=new URLSearchParams({response_type:'code',client_id:clientId,scope:scopes,redirect_uri:REDIRECT_URI,show_dialog:'true'});
+  window.open('https://accounts.spotify.com/authorize?'+params.toString(),'_blank','width=500,height=700');
+  document.getElementById('step2card').classList.remove('collapsed');
+  document.getElementById('step2card').scrollIntoView({behavior:'smooth'});
+}
+
+async function exchangeCode(){
+  const callbackUrl=document.getElementById('callbackUrl').value.trim();
+  if(!callbackUrl){alert('Please paste the redirect URL.');return;}
+  let code;
+  try{const u=new URL(callbackUrl);code=u.searchParams.get('code');const err=u.searchParams.get('error');if(err){alert('Spotify error: '+err);return;}}
+  catch(e){alert('Invalid URL.');return;}
+  if(!code){alert('No code found in URL.');return;}
+  const clientId=sessionStorage.getItem('client_id')||document.getElementById('clientId').value.trim();
+  const clientSecret=sessionStorage.getItem('client_secret')||document.getElementById('clientSecret').value.trim();
+  try{
+    const resp=await fetch(VERCEL_TOKEN_URL,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code,client_id:clientId,client_secret:clientSecret,redirect_uri:REDIRECT_URI})
+    });
+    const data=await resp.json();
+    if(data.error){alert('Token error: '+(data.error_description||data.error));return;}
+    accessToken=data.access_token;
+    const profileResp=await fetch('https://api.spotify.com/v1/me',{headers:{'Authorization':'Bearer '+accessToken}});
+    const profile=await profileResp.json();
+    if(profile.error){alert('Profile error: '+profile.error.message);return;}
+    userId=profile.id;
+    document.getElementById('userName').textContent=profile.display_name||profile.id;
+    document.getElementById('badge1').classList.add('done');
+    document.getElementById('badge2').classList.add('done');
+    document.getElementById('step3card').classList.remove('collapsed');
+    document.getElementById('step3card').scrollIntoView({behavior:'smooth'});
+  }catch(e){alert('Error: '+e.message);}
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function log(msg,type='info'){const box=document.getElementById('logBox');box.style.display='block';const el=document.createElement('div');el.className='log-entry '+type;el.textContent=msg;box.appendChild(el);box.scrollTop=box.scrollHeight;}
+function setStatus(msg){document.getElementById('statusMsg').textContent=msg;}
+function setProgress(pct,label){document.getElementById('progressFill').style.width=pct+'%';document.getElementById('progressPct').textContent=Math.round(pct)+'%';if(label)document.getElementById('progressLabel').textContent=label;}
+
+async function spotifyGet(url,retries=4){
+  for(let i=0;i<retries;i++){
+    const resp=await fetch(url,{headers:{'Authorization':'Bearer '+accessToken}});
+    if(resp.status===429){const wait=(parseInt(resp.headers.get('Retry-After')||'3',10)+1)*1000;log('Rate limited. Waiting '+Math.round(wait/1000)+'s...');await sleep(wait);continue;}
+    if(resp.status===401){alert('Token expired! Please reload and re-authenticate.');throw new Error('Token expired');}
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    return resp.json();
+  }
+  throw new Error('Too many retries');
+}
+
+async function spotifyPost(url,body,retries=4){
+  for(let i=0;i<retries;i++){
+    const resp=await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(resp.status===429){const wait=(parseInt(resp.headers.get('Retry-After')||'3',10)+1)*1000;log('Rate limited. Waiting '+Math.round(wait/1000)+'s...');await sleep(wait);continue;}
+    if(resp.status===401){alert('Token expired! Please reload and re-authenticate.');throw new Error('Token expired');}
+    if(!resp.ok){const t=await resp.text();throw new Error('HTTP '+resp.status+': '+t);}
+    return resp.json();
+  }
+}
+
+async function fetchAllTracks(playlistId){
+  let tracks=[],url='https://api.spotify.com/v1/playlists/'+playlistId+'/tracks?limit=100&fields=next,total,items(track(id,name,uri,artists))',total=null;
+  while(url){
+    const data=await spotifyGet(url);
+    if(total===null){total=data.total;log('Playlist has '+total+' tracks. Fetching all...');}
+    for(const item of data.items){if(item.track&&item.track.id)tracks.push(item.track);}
+    setProgress((tracks.length/total)*30,'Fetching tracks... '+tracks.length+'/'+total);
+    url=data.next;await sleep(80);
+  }
+  return tracks;
+}
+
+async function fetchAudioFeatures(trackIds){
+  const features={},chunks=[];
+  for(let i=0;i<trackIds.length;i+=100)chunks.push(trackIds.slice(i,i+100));
+  let done=0;
+  for(const chunk of chunks){
+    const data=await spotifyGet('https://api.spotify.com/v1/audio-features?ids='+chunk.join(','));
+    for(const f of(data.audio_features||[])){if(f&&f.id)features[f.id]={key:f.key,mode:f.mode};}
+    done+=chunk.length;
+    setProgress(30+(done/trackIds.length)*40,'Fetching audio features... '+done+'/'+trackIds.length);
+    await sleep(120);
+  }
+  return features;
+}
+
+async function createPlaylist(name,desc){
+  const data=await spotifyPost('https://api.spotify.com/v1/users/'+userId+'/playlists',{name,description:desc,public:false});
+  return data.id;
+}
+
+async function addTracksToPlaylist(plId,uris){
+  for(let i=0;i<uris.length;i+=100){await spotifyPost('https://api.spotify.com/v1/playlists/'+plId+'/tracks',{uris:uris.slice(i,i+100)});await sleep(150);}
+}
+
+function renderKeyGrid(buckets){
+  const grid=document.getElementById('keyGrid');grid.style.display='grid';grid.innerHTML='';
+  for(const[key,tracks]of Object.entries(buckets).sort((a,b)=>b[1].length-a[1].length)){
+    if(!tracks.length)continue;
+    const pill=document.createElement('div');pill.className='key-pill';pill.id='pill-'+key.replace(/[^a-z0-9]/gi,'_');
+    pill.innerHTML='<span class="kname">'+key+'</span><span class="kcount">'+tracks.length+'</span>';
+    grid.appendChild(pill);
+  }
+}
+
+async function startSorting(){
+  document.getElementById('startBtn').disabled=true;
+  document.getElementById('statusBar').style.display='block';
+  const playlistId=getPlaylistId(document.getElementById('playlistUrl').value);
+  const prefix=document.getElementById('prefix').value.trim();
+  try{
+    setStatus('Fetching tracks from playlist...');
+    const tracks=await fetchAllTracks(playlistId);
+    log('✓ Fetched '+tracks.length+' tracks','ok');
+    setStatus('Fetching audio features...');
+    const features=await fetchAudioFeatures(tracks.map(t=>t.id));
+    log('✓ Got audio features for '+Object.keys(features).length+' tracks','ok');
+    const buckets={};
+    for(let k=0;k<12;k++)for(let m=0;m<2;m++)buckets[KEY_NAMES[k]+' '+MODE_NAMES[m]]=[];
+    buckets['Unknown Key']=[];
+    let skipped=0;
+    for(const track of tracks){
+      const f=features[track.id];
+      if(!f||f.key===-1){buckets['Unknown Key'].push(track.uri);skipped++;continue;}
+      buckets[KEY_NAMES[f.key]+' '+MODE_NAMES[f.mode]].push(track.uri);
+    }
+    log('✓ Sorted into key buckets. '+skipped+' tracks had no key data.','ok');
+    renderKeyGrid(buckets);setProgress(75,'Creating playlists...');
+    let playlistsCreated=0,totalSorted=0;
+    const entries=Object.entries(buckets).filter(([k,v])=>v.length>0);
+    for(let i=0;i<entries.length;i++){
+      const[keyLabel,uris]=entries[i];
+      const name=prefix?prefix+' \u2013 '+keyLabel:keyLabel;
+      setStatus('Creating: '+name+'...');
+      log('📝 Creating "'+name+'" ('+uris.length+' tracks)...');
+      const plId=await createPlaylist(name,'Auto-sorted by key: '+keyLabel+'. '+uris.length+' tracks.');
+      await addTracksToPlaylist(plId,uris);
+      const pill=document.getElementById('pill-'+keyLabel.replace(/[^a-z0-9]/gi,'_'));
+      if(pill)pill.classList.add('created');
+      log('✓ Created "'+name+'"','ok');
+      playlistsCreated++;totalSorted+=uris.length;
+      setProgress(75+((i+1)/entries.length)*24,'Creating playlists... '+(i+1)+'/'+entries.length);
+      await sleep(250);
+    }
+    setProgress(100,'Complete!');
+    document.getElementById('spinner').style.display='none';
+    setStatus('✓ All done!');
+    log('🎉 Finished! '+playlistsCreated+' playlists created, '+totalSorted+' tracks sorted.','ok');
+    document.getElementById('sumTracksN').textContent=totalSorted.toLocaleString();
+    document.getElementById('sumPlaylistsN').textContent=playlistsCreated;
+    document.getElementById('sumSkippedN').textContent=skipped;
+    document.getElementById('summaryRow').style.display='flex';
+  }catch(e){
+    log('❌ Error: '+e.message,'err');
+    setStatus('Error — see log');
+    document.getElementById('spinner').style.display='none';
+    document.getElementById('startBtn').disabled=false;
+  }
+}
+</script>
+</body>
+</html>
