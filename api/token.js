@@ -6,8 +6,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
  
   const { code, client_id, client_secret, redirect_uri } = req.body;
+ 
   if (!code || !client_id || !client_secret || !redirect_uri) {
-    return res.status(400).json({ error: 'Missing required fields' });
+    return res.status(400).json({ error: 'Missing required fields', received: { code: !!code, client_id: !!client_id, client_secret: !!client_secret, redirect_uri: !!redirect_uri } });
   }
  
   try {
@@ -19,13 +20,21 @@ export default async function handler(req, res) {
       },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
-        code,
-        redirect_uri
-      })
+        code: code,
+        redirect_uri: redirect_uri
+      }).toString()
     });
-    const data = await response.json();
+ 
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(e) {
+      return res.status(500).json({ error: 'Spotify returned invalid JSON', raw: text.slice(0, 300) });
+    }
     return res.status(200).json(data);
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
 }
+ 
